@@ -1,0 +1,37 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist/client",
+  "framework": null,
+  "installCommand": "pnpm install --no-frozen-lockfile",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.osy-immo.com" }],
+      "destination": "https://osy-immo.com/$1",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    { "source": "/img/unsplash/:path*", "destination": "https://images.unsplash.com/:path*" },
+    { "source": "/img/convex/:path*", "destination": "https://moonlit-chipmunk-526.convex.cloud/api/storage/:path*" },
+    { "source": "/(.*)", "destination": "/api/ssr" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(self), payment=()" }
+      ]
+    }
+  ],
+  "functions": {
+    "api/ssr.ts": {
+      "maxDuration": 30,
+      "includeFiles": "dist/server/**"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+iteration	vector	severity	owasp	stride	confidence	location	description
+0	baseline	-	-	-	-	-	npm: 1 moderate (ws CVE-2026-45736 via convex transitive)
+1	properties.get info leak	High	A01	I	Confirmed	convex/properties.ts:152-157	get(id) retourne tout doc même draft/sold/archived sans owner check ni filter status — PII (address, lat, lng, ownerId) exposée
+1b	properties.listByOwner enum	High	A01	I	Confirmed	convex/properties.ts:163-174	listByOwner accepte ownerId arbitraire sans auth check — énumération de toutes les annonces de n'importe quel user
+2	files.getUrl bruteforce	-	-	-	N/A	convex/files.ts:39-44	Convex IDs opaques ~10^48, pas exploitable
+3	inquiries.send no rate limit	Medium	A04	D	Confirmed	convex/inquiries.ts:19-40	Mutation anonyme + pas de rate limit → flood DB à 60req/s
+4	events.record inflation	Medium	A04	T+D	Confirmed	convex/events.ts:38-82	sessionHash client-controlled, refUserId non validé → inflation stats + fake ambassadeurs
+5	social.debug* publiques	High	A01+A05	I+T	Confirmed	convex/social.ts:1337,1376,1436,1490	4 actions debug sans auth: list accounts Zernio + inspect posts + MUTATION seedZernioId sans owner check
+6	description no length limit	Medium	A04	D	Confirmed	convex/properties.ts baseFields:182	v.string() sans contrainte → user authentifié peut créer 100 annonces × 1MB
+7	XSS description	-	-	-	N/A	src/	React échappe + esc() dans emails — non exploitable
+8	patch ownerId injection	-	-	-	N/A	convex/properties.ts:228	baseFields ne contient pas ownerId/publishedAt — non exploitable
+9	inquiries fromEmail spoof	Medium	A07+A04	S+R	Confirmed	convex/inquiries.ts:20-26	fromEmail/fromName arbitraires sans vérification → social engineering / impersonation
+10	OAuth redirectTo	-	-	-	N/A	convex/auth.ts	trustedOrigins défaut Better Auth = baseURL → safe
+11	Vercel /img/* proxy	-	-	-	N/A	vercel.json	path-only, pas SSRF, Convex storage déjà public
+12	Security headers absents	Medium	A05	T	Confirmed	vercel.json	manque CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy
+13	Verbose errors	-	-	-	N/A	convex/	Messages courts FR, pas de stack trace
+14	ws CVE moderate	Low	A06	-	Confirmed	transitive convex	CVE-2026-45736 ws<8.20.1 (uninitialized mem disclosure), attendre bump convex
+15	messages.send no rate limit	Low	A04	D	Confirmed	convex/messages.ts:126-179	Participant authentifié peut spam 60msg/s — cooldown email mitige email mais pas DB

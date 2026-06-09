@@ -1,0 +1,18 @@
+# robots.txt — Osy-Immo marketplace
+# Autorise tous les crawlers (Google, Bing, Facebook, WhatsApp, etc.) à scraper le site.
+#
+# Pourquoi ce fichier existe :
+#   Sans `robots.txt`, certains crawlers (notamment Facebook Sharing Debugger)
+#   considèrent que le site les bloque par défaut. Un fichier explicite levée
+#   l'ambiguïté et permet aux previews WhatsApp / Facebook / iMessage de
+#   fonctionner sans erreur "Code de réponse erroné".
+
+User-agent: *
+Allow: /
+
+# On bloque uniquement les routes d'auth pour éviter qu'elles soient indexées
+Disallow: /api/auth/
+Disallow: /dashboard
+
+# Sitemap (à ajouter plus tard si on veut booster le SEO)
+# Sitemap: https://osy-immo.com/sitemap.xml

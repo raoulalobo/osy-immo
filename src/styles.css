@@ -1,0 +1,222 @@
+/* -----------------------------------------------------------------------------
+ * styles.css
+ * Rôle : Point d'entrée CSS global — importe Tailwind v4 et déclare les
+ *        variables de design system.
+ *
+ *  Charte couleurs Osy-Immo :
+ *   - `brand-*` (BLEU #0057BA) : couleur structurelle. Sert au texte, aux fonds,
+ *      à la navigation et aux états par défaut. Le bleu donne une lecture confortable
+ *      même sur de grandes surfaces.
+ *   - `accent-*` (ROUGE #D60036) : couleur d'action. Réservée aux CTA primaires
+ *      (boutons "Publier", "Créer un compte", "Rechercher") et aux highlights forts.
+ *
+ *  Les paliers 50→900 sont calculés à partir de la teinte source en interpolant
+ *  vers blanc (50–200) et vers noir (600–900) pour garantir un contraste AA.
+ *
+ *  Interactions : importé une fois dans `src/routes/__root.tsx` via `import "...?url"`.
+ * -----------------------------------------------------------------------------*/
+
+@import "tailwindcss";
+
+@theme {
+  /* ── BRAND BLEU (couleur source #0057BA) ─────────────────────────────── */
+  --color-brand-50:  #eef5fc;
+  --color-brand-100: #d6e7f7;
+  --color-brand-200: #a8caee;
+  --color-brand-300: #75ace3;
+  --color-brand-400: #4385d3;
+  --color-brand-500: #0057ba;  /* source */
+  --color-brand-600: #00499c;
+  --color-brand-700: #003a7c;
+  --color-brand-800: #002b5e;
+  --color-brand-900: #001e44;
+
+  /* ── ACCENT ROUGE (couleur source #D60036) ───────────────────────────── */
+  --color-accent-50:  #fef1f4;
+  --color-accent-100: #fdd8e0;
+  --color-accent-200: #fab6c4;
+  --color-accent-300: #f6829c;
+  --color-accent-400: #f04d77;
+  --color-accent-500: #d60036;  /* source */
+  --color-accent-600: #b50030;
+  --color-accent-700: #8e0026;
+  --color-accent-800: #6b001d;
+  --color-accent-900: #480013;
+
+  /* ── Neutres (texte profond, ink) ────────────────────────────────────── */
+  --color-ink-900:   #0f172a;
+
+  /* ── Tokens transverses ──────────────────────────────────────────────── */
+  --radius-card: 14px;
+  --shadow-soft: 0 8px 24px -8px rgba(15, 23, 42, 0.16);
+  --shadow-card-hover: 0 12px 32px -10px rgba(15, 23, 42, 0.22);
+
+  /* ── Easing curves customs ─────────────────────────────────────────────
+   * `ease-out` / `ease-in-out` natifs CSS sont trop "mous" (faible accélération
+   * en fin de course). On préfère des courbes plus marquées qui donnent du
+   * "poids" aux animations UI sans coût.
+   *  - swift-out  : entrée d'élément (popover, dropdown, modal apparition)
+   *  - swift      : mouvement sur place (hover, layout shift)
+   *  - drawer     : courbe iOS pour sheet/drawer (Vaul-like)
+   */
+  --ease-swift-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-swift:     cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-drawer:    cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Reset léger : typographie, antialiasing, fond légèrement teinté */
+html, body, #root {
+  height: 100%;
+  /* IMPORTANT : prévient TOUT débordement horizontal accidentel sur mobile.
+     Si un enfant a une largeur excessive (image, table, SVG fixed-width), la
+     page entière ne scrolle plus en X — seuls les conteneurs qui déclarent
+     explicitement `overflow-x: auto` (table dashboard, gallery thumbnails)
+     peuvent scroller. Empêche les "barres horizontales" parasites. */
+  overflow-x: hidden;
+}
+body {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  /* Fond très clair tinté bleu — donne le ton "marketplace pro" */
+  background-color: #f7fafd;
+  color: var(--color-ink-900);
+}
+
+/* -----------------------------------------------------------------------------
+ * Animations globales utilisées par les skeletons et les badges
+ * -----------------------------------------------------------------------------*/
+
+/* Shimmer pour les skeletons — mouvement constant gauche→droite, easing LINEAR
+   parce que c'est une animation décorative sans début/fin perceptible. */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Classe shimmer : applique une base bg-brand-100 + un balayage clair
+   dessus. Évite le `animate-pulse` Tailwind qui ne fait que clignoter
+   l'opacité (visuellement plat). Le `linear` est volontaire — ce sont
+   des animations infinies décoratives, pas d'easing nécessaire. */
+.shimmer {
+  /* Fallback hex pour browsers sans support OKLCH (Chrome Android < 119, Safari < 15.4).
+     La déclaration OKLCH ci-dessous override sur les browsers modernes (cascade naturelle :
+     si le parser ignore `oklch(...)`, il garde la valeur hex précédente). */
+  background-color: #d6e7f7;
+  background-color: oklch(91% 0.04 240); /* brand-100 légèrement plus marqué */
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Apparition discrète : scale-in subtil pour badges/popovers.
+   On part de scale(0.85) opacity(0) — JAMAIS scale(0) (rien n'apparaît du néant). */
+@keyframes scale-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 180ms var(--ease-swift-out) both;
+}
+
+/* Pop-in popover : combine scale + translate avec transform-origin trigger
+   (cf. classe utility `origin-top-right` Tailwind à appliquer au popover). */
+@keyframes popover-in {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-popover-in {
+  animation: popover-in 160ms var(--ease-swift-out) both;
+}
+
+/* -----------------------------------------------------------------------------
+ * Fix bug GPU compositor sur Chrome Android (Mali / Adreno anciens).
+ *
+ * Sur certains téléphones Android (Mali-G52, Adreno 6xx anciens), l'animation
+ * `transform: scale()` combinée avec un overlay `fixed inset-0` et un popover
+ * `position: absolute` provoque des bandes horizontales scintillantes pendant
+ * la composition GPU des layers. Le `scale()` force la création d'un compositing
+ * layer dynamique qui interagit mal avec le buffer GPU sur ces puces.
+ *
+ * Fix : sur tous les écrans tactiles (`pointer: coarse` matche mobile + tablette
+ * tactile), on REDÉFINIT les keyframes `popover-in` en pure opacity fade. Plus de
+ * `transform: scale()` → plus de promotion en compositing layer pendant
+ * l'animation → plus d'artefacts visuels. Le ressenti reste fluide (la fade
+ * 160 ms est imperceptiblement plus "plate" qu'un scale+fade mais visuellement
+ * comparable).
+ *
+ * Desktop (pointer: fine) conserve l'animation scale+opacity originale.
+ * ---------------------------------------------------------------------------*/
+@media (pointer: coarse) {
+  @keyframes popover-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+}
+
+/* Sheet latéral mobile : glisse depuis le bord droit. Utilisé par le menu
+   burger de la Navbar. translateX(100%) → 0 sur 220ms — assez rapide pour
+   ne pas freiner l'utilisateur mais avec du poids visuel grâce à --ease-swift-out. */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 220ms var(--ease-swift-out) both;
+}
+
+/* Fade-in pour les overlays (backdrop des sheets/modals). Plus rapide que
+   l'élément qu'il accompagne pour qu'il "remplisse" l'écran avant que le
+   contenu glisse. */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fade-in 150ms var(--ease-swift-out) both;
+}
+
+/* -----------------------------------------------------------------------------
+ * Utility : cache la scrollbar tout en gardant le scroll fonctionnel.
+ * À combiner avec `overflow-x-auto` + `snap-x` sur les carrousels mobile.
+ * La progression du carrousel est indiquée visuellement par les dots
+ * (CarouselDots) — la scrollbar grise n'a plus de raison d'être affichée.
+ * -----------------------------------------------------------------------------*/
+.scrollbar-hide {
+  scrollbar-width: none;        /* Firefox 64+ */
+  -ms-overflow-style: none;     /* IE 10 / legacy Edge */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;                /* Chrome / Safari / WebKit */
+}
+
+/* Respect des préférences utilisateur : si reduced-motion est activé, on coupe
+   toutes les animations décoratives (le `:active` scale reste, lui sert encore
+   au feedback fonctionnel). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,14 @@
+# Fichiers exclus du déploiement Vercel.
+# IMPORTANT : `dist/` doit RESTER inclus — la fonction `api/ssr.ts` importe
+# `../dist/server/server.js` produit par `pnpm build` (buildCommand de vercel.json).
+
+node_modules
+.git
+.cache
+.vite
+.vercel
+.claude
+.env
+.env.local
+*.local
+README.md

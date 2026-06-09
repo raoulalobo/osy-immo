@@ -1,0 +1,7 @@
+iteration	vector	severity	owasp	stride	confidence	location	description
+0	baseline	-	-	-	-	-	delta vs 260531-1257-stride-owasp-full-audit (5 fixes appliqués + auto-fix)
+1	referrerSource sans whitelist	Medium	A04	T+D	Confirmed	convex/events.ts:52 + schema.ts events.referrerSource	Le client peut envoyer n'importe quel string en referrerSource → pollution analytique (faux buckets) + storage DoS si long string. React échappe les labels donc pas de XSS, mais nuit aux stats.
+2	properties.get public sold/rented/archived	-	-	-	N/A	convex/properties.ts:168	Décision UX validée par l'utilisateur — draft reste owner-only (cas critique Finding #2 J-1 préservé). Info, pas un finding.
+3	limit arg sans cap	Low	A04	D	Confirmed	convex/properties.ts:62,131,204	3 queries publiques (list, search, listSimilar) acceptent un limit non borné → potentiel DoS query si attaquant envoie limit=100000. Convex cap probablement à 32k take() naturellement mais à valider.
+4	listSocialPostsForOwner cross-tenant	-	-	-	N/A	convex/social.ts:1121-	myProperties filtré par ownerId → scope correct, pas de leak cross-tenant possible.
+5	classifyReferrer côté client injection	-	-	-	N/A	src/lib/referrer.ts	Parse URL via new URL() avec try/catch, patterns RegExp sans ReDoS. Côté client uniquement, le risque réel est sur l'accept serveur (Finding #1).

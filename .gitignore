@@ -1,0 +1,19 @@
+node_modules
+.output
+dist
+.cache
+.vite
+.vercel
+.tanstack
+.env*.local
+.env
+.DS_Store
+
+# TanStack Start généré
+src/routeTree.gen.ts
+
+# Convex généré
+convex/_generated
+
+# Notes de session Claude Code (locales, non partagées)
+.claude/plans
