@@ -23,6 +23,7 @@
 // -------------------------------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
+import RoleDuNotaire from "./role-du-notaire";
 import TitreFoncier from "./titre-foncier";
 import CertificatDePropriete from "./certificat-de-propriete";
 import DossierTechnique from "./dossier-technique";
@@ -50,6 +51,20 @@ export interface BlogArticleMeta {
  * Les composants associés sont dans `articleComponents` ci-dessous.
  */
 export const articles: BlogArticleMeta[] = [
+  {
+    slug: "role-du-notaire",
+    title: "Le rôle du notaire dans une transaction foncière au Cameroun",
+    excerpt:
+      "Officier public incontournable : vérifications, acte authentique, séquestre du prix, mutation du titre foncier — et les pièges à éviter avant de signer.",
+    // Signature d'un contrat au stylo (Scott Graham) — image emblématique de
+    // l'acte notarié, moment central de la transaction décrite dans l'article.
+    // Source : https://unsplash.com/photos/5fNmWej4tAA
+    coverImage:
+      "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: "2026-06-10",
+    readingTimeMin: 6,
+    tags: ["Notaire", "Juridique"],
+  },
   {
     slug: "titre-foncier",
     title: "Le titre foncier au Cameroun",
@@ -140,6 +155,7 @@ export const articles: BlogArticleMeta[] = [
  * le tri pour l'affichage se fait via `articles` ci-dessus.
  */
 export const articleComponents: Record<string, ComponentType> = {
+  "role-du-notaire": RoleDuNotaire,
   "titre-foncier": TitreFoncier,
   "certificat-de-propriete": CertificatDePropriete,
   "dossier-technique": DossierTechnique,
