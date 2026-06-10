@@ -56,11 +56,12 @@ export const articles: BlogArticleMeta[] = [
     title: "Le rôle du notaire dans une transaction foncière au Cameroun",
     excerpt:
       "Officier public incontournable : vérifications, acte authentique, séquestre du prix, mutation du titre foncier — et les pièges à éviter avant de signer.",
-    // Signature d'un contrat au stylo (Scott Graham) — image emblématique de
-    // l'acte notarié, moment central de la transaction décrite dans l'article.
-    // Source : https://unsplash.com/photos/5fNmWej4tAA
+    // Professionnel camerounais en costume à son bureau (Olorunyomi Solomon) —
+    // évoque le notaire dans son étude recevant ses clients. Choisie pour
+    // représenter le contexte camerounais (vérifiée visuellement, tableau de
+    // village africain au mur). Source : https://unsplash.com/photos/UGFe5fI3Zb0
     coverImage:
-      "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1604783125462-37d81c7385e6?auto=format&fit=crop&w=1200&q=80",
     publishedAt: "2026-06-10",
     readingTimeMin: 6,
     tags: ["Notaire", "Juridique"],
