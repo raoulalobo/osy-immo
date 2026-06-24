@@ -235,6 +235,32 @@ export default defineSchema({
     .index("by_conv_recipient", ["conversationId", "recipientUserId"]),
 
   // -------------------------------------------------------------------
+  // favoriteStatusNotifications — registre des emails « le bien que vous
+  // suiviez n'est plus disponible » envoyés aux utilisateurs ayant mis une
+  // annonce en favori, quand celle-ci passe à "sold" / "rented".
+  //
+  // Rôle : IDEMPOTENCE. Garantit qu'un même destinataire ne reçoit l'email
+  // qu'UNE seule fois pour un couple (annonce, statut), même si le
+  // propriétaire bascule plusieurs fois le statut (ex. sold → active → sold)
+  // ou si la mutation `update` est rejouée. Voir convex/emails.ts
+  // (prepareFavoriteStatusEmail filtre les destinataires déjà présents ici).
+  // -------------------------------------------------------------------
+  favoriteStatusNotifications: defineTable({
+    propertyId: v.id("properties"),
+    recipientUserId: v.string(),          // BetterAuth user id du favori notifié
+    // Statut déclencheur au moment de la notification : "sold" | "rented".
+    // String libre (et non union) pour rester souple si on étend plus tard.
+    status: v.string(),
+  })
+    // Lookup d'idempotence : "a-t-on déjà notifié CE destinataire pour CE
+    // bien passé à CE statut ?" — l'ordre des champs suit l'usage de la query.
+    .index("by_property_status_recipient", [
+      "propertyId",
+      "status",
+      "recipientUserId",
+    ]),
+
+  // -------------------------------------------------------------------
   // inquiries — formulaire de contact envoyé à un propriétaire
   // (utilisé par les visiteurs anonymes ; les utilisateurs connectés
   // passent par la messagerie interne ci-dessus)

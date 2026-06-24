@@ -197,6 +197,121 @@ export function renderNewMessageEmail(data: CommonProps): {
 }
 
 // -------------------------------------------------------------------------------------------------
+// Email "Un bien suivi n'est plus disponible" (vendu / loué)
+//
+// Déclenché par l'action `notifyFavoritesStatusChange` (convex/emails.ts) quand
+// une annonce mise en favori par l'utilisateur passe à "sold" ou "rented".
+//
+// Intention UX (choix produit "info + biens similaires") :
+//   - Informer honnêtement que le bien suivi est parti (transparence).
+//   - Garder l'utilisateur sur la plateforme : CTA principal vers le listing
+//     `/properties` pour découvrir des biens similaires, lien secondaire vers
+//     la fiche du bien (qui affiche déjà un bandeau "Vendue/Louée" + suggestions).
+//
+// Template : layout dédié (pas de carte message), avec image du bien en hero.
+// -------------------------------------------------------------------------------------------------
+export function renderFavoriteStatusEmail(data: {
+  recipientName: string;
+  propertyTitle: string;
+  propertyImage?: string;
+  status: "sold" | "rented"; // statut déclencheur
+  propertyUrl: string; // lien vers la fiche du bien (/properties/:id)
+  browseUrl: string; // lien vers le listing (/properties) — biens similaires
+}): { subject: string; html: string } {
+  // Verbe accordé au type de transaction pour un message naturel en français.
+  const verb = data.status === "sold" ? "vendu" : "loué";
+  const name = esc(data.recipientName);
+  const title = esc(data.propertyTitle);
+  const propertyUrl = esc(data.propertyUrl);
+  const browseUrl = esc(data.browseUrl);
+  const heroImg = data.propertyImage ? esc(data.propertyImage) : "";
+
+  return {
+    subject: `Un bien que vous suiviez vient d'être ${verb}`,
+    html: `<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Osy-Immo</title>
+</head>
+<body style="margin:0;padding:0;background:#f7fafd;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+  <!-- Preheader invisible affiché en aperçu inbox -->
+  <div style="display:none;max-height:0;overflow:hidden;">
+    Le bien « ${title} » que vous aviez en favori vient d'être ${verb}. Découvrez des biens similaires.
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f7fafd;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px -8px rgba(15,23,42,0.16);">
+          <!-- Header marque -->
+          <tr>
+            <td style="padding:20px 24px;border-bottom:1px solid #eef5fc;">
+              <span style="font-size:18px;font-weight:600;color:#003a7c;">
+                <span style="color:#d60036;">🏠</span> Osy-Immo
+              </span>
+            </td>
+          </tr>
+
+          <!-- Intro -->
+          <tr>
+            <td style="padding:24px 24px 8px;">
+              <p style="margin:0 0 8px;font-size:14px;color:#475569;">Bonjour ${name},</p>
+              <p style="margin:0;font-size:16px;line-height:1.5;color:#0f172a;">
+                Le bien <strong>${title}</strong> que vous aviez ajouté à vos
+                favoris vient d'être <strong>${verb}</strong>. Il n'est donc
+                plus disponible — mais d'autres biens similaires vous attendent.
+              </p>
+            </td>
+          </tr>
+
+          ${heroImg ? `
+          <!-- Image du bien -->
+          <tr>
+            <td style="padding:16px 24px 0;">
+              <img src="${heroImg}" alt="" width="552" style="width:100%;max-width:552px;height:auto;border-radius:8px;display:block;" />
+            </td>
+          </tr>` : ""}
+
+          <!-- CTA principal : découvrir des biens similaires -->
+          <tr>
+            <td align="center" style="padding:24px 24px 8px;">
+              <a href="${browseUrl}"
+                 style="display:inline-block;padding:12px 28px;background:#d60036;color:#ffffff;text-decoration:none;border-radius:999px;font-weight:600;font-size:14px;">
+                Découvrir des biens similaires
+              </a>
+            </td>
+          </tr>
+
+          <!-- Lien secondaire : revoir l'annonce -->
+          <tr>
+            <td align="center" style="padding:0 24px 8px;">
+              <a href="${propertyUrl}" style="font-size:13px;color:#0057ba;text-decoration:underline;">
+                Revoir l'annonce
+              </a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:16px 24px;border-top:1px solid #eef5fc;text-align:center;">
+              <p style="margin:0;font-size:11px;color:#94a3b8;">
+                Vous recevez cet email parce que vous aviez ajouté ce bien à vos
+                favoris sur Osy-Immo.<br>Cameroun · Foncier · Marketplace.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`,
+  };
+}
+
+// -------------------------------------------------------------------------------------------------
 // Email "Vérification d'adresse email" (envoyé à l'inscription)
 //
 // Déclenché par BetterAuth quand un nouvel utilisateur s'inscrit via signUp.email

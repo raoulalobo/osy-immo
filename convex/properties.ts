@@ -658,6 +658,33 @@ export const update = mutation({
         propertyId: id,
       });
     }
+
+    // Hook notification favoris : quand le bien devient INDISPONIBLE (vendu ou
+    // loué), on prévient par email tous les utilisateurs qui l'avaient en favori.
+    //
+    //  - Déclenché uniquement sur une TRANSITION entrante vers ce statut
+    //    (`existing.status !== patch.status`) : éviter de re-notifier si le
+    //    propriétaire re-sauvegarde une annonce déjà vendue/louée.
+    //  - L'idempotence PAR DESTINATAIRE est garantie côté action via la table
+    //    `favoriteStatusNotifications` (cf. convex/emails.ts) — même si cette
+    //    transition se reproduit (sold → active → sold), chaque favori ne
+    //    reçoit qu'un seul email par statut.
+    //  - Non bloquant (`runAfter(0, ...)`) et no-op silencieux si la clé
+    //    Resend n'est pas configurée.
+    // On capture la valeur narrowée dans une const ("sold" | "rented" | null)
+    // plutôt qu'un simple booléen : TypeScript ne propage pas le narrowing de
+    // `patch.status` à travers une variable booléenne intermédiaire.
+    const unavailableStatus =
+      patch.status === "sold" || patch.status === "rented"
+        ? patch.status
+        : null;
+    if (unavailableStatus && existing.status !== unavailableStatus) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.emails.notifyFavoritesStatusChange,
+        { propertyId: id, status: unavailableStatus }
+      );
+    }
   },
 });
 
