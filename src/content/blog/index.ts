@@ -30,6 +30,7 @@ import DossierTechnique from "./dossier-technique";
 import ImmatriculationDirecte from "./immatriculation-directe";
 import ImmatriculationIndirecte from "./immatriculation-indirecte";
 import Lotissement from "./lotissement";
+import DomainePriveDeLEtat from "./domaine-prive-de-letat";
 
 export interface BlogArticleMeta {
   slug: string;
@@ -51,6 +52,23 @@ export interface BlogArticleMeta {
  * Les composants associés sont dans `articleComponents` ci-dessous.
  */
 export const articles: BlogArticleMeta[] = [
+  {
+    slug: "domaine-prive-de-letat",
+    title:
+      "Domaine privé de l'État : peut-on faire une immatriculation directe ?",
+    excerpt:
+      "Non — et voici pourquoi. Distinction des trois régimes de terres, et la vraie voie pour acquérir un terrain de l'État : concession provisoire, définitive, puis cession.",
+    // Carrefour de la Poste Centrale à Yaoundé (Ariel Nathan ADA MBITA) —
+    // cœur administratif de la capitale, évoque le contexte « domaine de
+    // l'État » (services publics, administration domaniale). Contexte
+    // camerounais authentique, validé visuellement par le propriétaire.
+    // Source : https://unsplash.com/photos/YdHJrPZjRrY
+    coverImage:
+      "https://images.unsplash.com/photo-1659947234294-b217aaeb25f8?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: "2026-06-24",
+    readingTimeMin: 7,
+    tags: ["Domaine de l'État", "Juridique"],
+  },
   {
     slug: "role-du-notaire",
     title: "Le rôle du notaire dans une transaction foncière au Cameroun",
@@ -163,6 +181,7 @@ export const articleComponents: Record<string, ComponentType> = {
   "immatriculation-directe": ImmatriculationDirecte,
   "immatriculation-indirecte": ImmatriculationIndirecte,
   "lotissement": Lotissement,
+  "domaine-prive-de-letat": DomainePriveDeLEtat,
 };
 
 /**
