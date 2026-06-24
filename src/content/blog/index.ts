@@ -31,6 +31,7 @@ import ImmatriculationDirecte from "./immatriculation-directe";
 import ImmatriculationIndirecte from "./immatriculation-indirecte";
 import Lotissement from "./lotissement";
 import DomainePriveDeLEtat from "./domaine-prive-de-letat";
+import ExpropriationCompensation from "./expropriation-compensation";
 
 export interface BlogArticleMeta {
   slug: string;
@@ -52,6 +53,22 @@ export interface BlogArticleMeta {
  * Les composants associés sont dans `articleComponents` ci-dessous.
  */
 export const articles: BlogArticleMeta[] = [
+  {
+    slug: "expropriation-compensation",
+    title:
+      "Expropriation et compensation au Cameroun : ce que l'État indemnise vraiment",
+    excerpt:
+      "Indemnité juste et préalable, sol contre mise en valeur, terrains de recasement : qui est compensé, combien, et comment sécuriser son indemnité.",
+    // Longue route bitumée au Cameroun (Angelo Casto) — évoque le projet
+    // routier d'utilité publique, première cause d'expropriation et d'emprise
+    // sur le foncier. Contexte camerounais, validé visuellement par le
+    // propriétaire. Source : https://unsplash.com/photos/4sjvWDKqAps
+    coverImage:
+      "https://images.unsplash.com/photo-1682924754699-dcf11b641343?auto=format&fit=crop&w=1200&q=80",
+    publishedAt: "2026-06-24",
+    readingTimeMin: 7,
+    tags: ["Expropriation", "Indemnisation"],
+  },
   {
     slug: "domaine-prive-de-letat",
     title:
@@ -182,6 +199,7 @@ export const articleComponents: Record<string, ComponentType> = {
   "immatriculation-indirecte": ImmatriculationIndirecte,
   "lotissement": Lotissement,
   "domaine-prive-de-letat": DomainePriveDeLEtat,
+  "expropriation-compensation": ExpropriationCompensation,
 };
 
 /**
