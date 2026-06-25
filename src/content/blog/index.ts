@@ -66,7 +66,7 @@ export const articles: BlogArticleMeta[] = [
     coverImage:
       "https://images.unsplash.com/photo-1682924754699-dcf11b641343?auto=format&fit=crop&w=1200&q=80",
     publishedAt: "2026-06-24",
-    readingTimeMin: 7,
+    readingTimeMin: 8,
     tags: ["Expropriation", "Indemnisation"],
   },
   {

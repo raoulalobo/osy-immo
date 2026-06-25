@@ -92,6 +92,36 @@ export default function ExpropriationCompensationArticle() {
         de quartiers).
       </p>
 
+      <h2>Peut-on être indemnisé dans une autre région ?</h2>
+      <p>
+        Tout dépend de la forme de la compensation. <strong>En argent</strong>, la
+        région n'a aucune importance : on indemnise le propriétaire ou l'occupant
+        du bien exproprié, quel que soit son lieu d'origine.{" "}
+        <strong>En nature</strong> (terrain de recasement), c'est juridiquement
+        possible partout — au Cameroun,{" "}
+        <strong>
+          tout citoyen peut être propriétaire foncier sur l'ensemble du
+          territoire national
+        </strong>
+        , sans distinction de région d'origine.
+      </p>
+      <p>
+        En pratique toutefois, le recasement est presque toujours organisé{" "}
+        <strong>à proximité de la zone expropriée</strong>, pour ne pas couper la
+        personne de son cadre de vie et de son activité. Ce qui compte n'est donc
+        pas la région <em>d'origine</em> de la personne, mais la région{" "}
+        <em>où se situe le projet</em>. Une réinstallation inter-régions — du
+        Centre vers le Littoral, par exemple — reste{" "}
+        <strong>exceptionnelle</strong> : elle se négocie au cas par cas et suppose
+        que l'État dispose de terrains libres dans la région cible.
+      </p>
+      <p>
+        Dernière nuance, de terrain celle-là : même avec un titre régulier, un{" "}
+        <strong>allogène</strong> installé dans une autre région peut rencontrer
+        des tensions <strong>coutumières</strong> locales. Le droit garantit la
+        propriété ; l'intégration sociale, elle, se gère séparément.
+      </p>
+
       <h2>La procédure, étape par étape</h2>
       <ol>
         <li>
