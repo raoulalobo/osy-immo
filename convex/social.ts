@@ -288,6 +288,97 @@ Voir l'annonce 👉 ${p.url}
  * Exemple : buildTikTokTitle({ type:"apartment", verb sale, city:"Yaounde", price:55 })
  *           → "🏠 Appartement à vendre — Yaounde · 55 FCFA"
  */
+/**
+ * Mappe le `type` enum interne vers un hashtag TikTok (sans accent, sans espace).
+ * Séparé de `formatPropertyType` (qui produit un libellé lisible) car les
+ * hashtags TikTok doivent être collés et minuscules pour être cliquables.
+ *
+ * Exemple : tikTokTypeTag("house") → "#maison"
+ */
+function tikTokTypeTag(t: string): string {
+  return (
+    ({
+      apartment: "#appartement",
+      house: "#maison",
+      land: "#terrain",
+      commercial: "#localcommercial",
+    } as Record<string, string>)[t] ?? "#immobilier"
+  );
+}
+
+/**
+ * Construit la DESCRIPTION TikTok complète (champ `tiktokSettings.description`).
+ *
+ * Pourquoi un champ séparé du titre TikTok (`buildTikTokTitle`) ?
+ *   En TikTok Photo Mode (slideshow), le `content` du post sert UNIQUEMENT de
+ *   TITRE : plafonné à 90 caractères, et TikTok y SUPPRIME automatiquement les
+ *   URLs et les hashtags. La vraie légende descriptive (jusqu'à 4000 caractères)
+ *   doit être fournie à part, dans `tiktokSettings.description`. Sans ce champ,
+ *   les abonnés ne voient que le titre ultra-court → la propriété n'est pas
+ *   décrite. C'est ce que construit cette fonction.
+ *
+ * Pourquoi distinct de `buildCaption` (FB/IG) ?
+ *   Le corps (titre + stats + description + lien) est identique, mais TikTok est
+ *   piloté par les hashtags pour la découverte. On ajoute donc un bloc de
+ *   hashtags plus large et orienté TikTok (#immobilier #cameroun + type +
+ *   transaction) en plus des hashtags de marque déjà présents sur FB/IG.
+ *
+ * Format type :
+ *   🏠 Maison à louer — Douala
+ *
+ *   350 000 FCFA / mois · 120 m² · 4 pièces · Douala
+ *
+ *   <description tronquée à 400 chars>
+ *
+ *   Voir l'annonce 👉 https://osy-immo.com/p/abc123
+ *
+ *   #OsyImmo #ImmobilierCameroun #immobilier #cameroun #Douala #maison #alouer
+ */
+function buildTikTokDescription(p: {
+  description: string;
+  price: number;
+  city: string;
+  type: string;
+  listingType: "sale" | "rent";
+  surface?: number;
+  rooms?: number;
+  url: string;
+}): string {
+  const verb = p.listingType === "rent" ? "à louer" : "à vendre";
+  const type = formatPropertyType(p.type);
+  // Stats compactes séparées par des points médians — même pattern que buildCaption.
+  const stats = [
+    formatPriceFCFA(p.price, p.listingType),
+    p.surface ? `${p.surface} m²` : null,
+    p.rooms ? `${p.rooms} pièces` : null,
+    p.city,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  // Description tronquée à SOCIAL_CAPTION_DESCRIPTION_MAX (400) — cohérent avec
+  // FB/IG. TikTok autorise jusqu'à 4000 car. mais on reste volontairement court
+  // et lisible (le bien complet est sur la fiche via le lien).
+  const desc =
+    p.description.length > 400
+      ? p.description.slice(0, 397) + "…"
+      : p.description;
+  // Bloc hashtags TikTok : marque (FB/IG) + découverte TikTok (génériques +
+  // ville + type + transaction). Ville sans espaces : "New Bell" → "#NewBell".
+  const cityTag = "#" + p.city.replace(/\s+/g, "");
+  const typeTag = tikTokTypeTag(p.type);
+  const dealTag = p.listingType === "rent" ? "#alouer" : "#avendre";
+  const hashtags = `#OsyImmo #ImmobilierCameroun #immobilier #cameroun ${cityTag} ${typeTag} ${dealTag}`;
+  return `🏠 ${type} ${verb} — ${p.city}
+
+${stats}
+
+${desc}
+
+Voir l'annonce 👉 ${p.url}
+
+${hashtags}`;
+}
+
 function buildTikTokTitle(p: {
   price: number;
   city: string;
@@ -343,6 +434,10 @@ type PreparedPayload = {
   mediaType: "image" | "video";
   caption: string;
   tiktokTitle: string;
+  // Légende complète destinée à TikTok (champ `tiktokSettings.description`,
+  // ≤4000 car.). Décrit réellement le bien aux abonnés, contrairement au
+  // `tiktokTitle` de 90 car. qui sert juste de titre du slideshow.
+  tiktokDescription: string;
 };
 type PreparePostResult =
   | PreparedPayload
@@ -436,6 +531,19 @@ export const preparePost = internalQuery({
         type: p.type,
         listingType: p.listingType,
         shortUrl,
+      }),
+      // Description riche injectée dans tiktokSettings.description côté action.
+      // Mêmes données que la caption FB/IG (titre + stats + description + lien)
+      // mais avec un bloc de hashtags élargi orienté découverte TikTok.
+      tiktokDescription: buildTikTokDescription({
+        description: p.description,
+        price: p.price,
+        city: p.city,
+        type: p.type,
+        listingType: p.listingType,
+        surface: p.surface,
+        rooms: p.rooms,
+        url: shortUrl,
       }),
     };
   },
@@ -697,6 +805,11 @@ export const publishToSocials = internalAction({
               // (cf. preparePost). Photo Mode = slideshow d'images, Video Mode =
               // post vidéo natif TikTok (Reels-like).
               media_type: data.mediaType === "video" ? "video" : "photo",
+              // Légende complète (≤4000 car.) qui décrit le bien aux abonnés.
+              // En Photo Mode, le `content`/`customContent` n'est qu'un TITRE de
+              // 90 car. (URLs + hashtags strippés) — c'est CE champ qui porte la
+              // vraie description + le lien + les hashtags de découverte TikTok.
+              description: data.tiktokDescription,
               privacy_level: "PUBLIC_TO_EVERYONE",
               allow_comment: true,
               allow_duet: true,
@@ -1109,6 +1222,9 @@ export const retryFailedPlatforms = action({
           tiktokSettings: {
             // Bascule Photo / Video Mode selon data.mediaType (cf. preparePost)
             media_type: data.mediaType === "video" ? "video" : "photo",
+            // Légende complète (≤4000 car.) — décrit le bien aux abonnés TikTok.
+            // Le titre 90 car. (customContent) ne suffit pas en Photo Mode.
+            description: data.tiktokDescription,
             privacy_level: "PUBLIC_TO_EVERYONE",
             allow_comment: true,
             allow_duet: true,
@@ -1393,6 +1509,9 @@ export const republishToSocials = action({
           tiktokSettings: {
             // Bascule Photo / Video Mode selon data.mediaType (cf. preparePost)
             media_type: data.mediaType === "video" ? "video" : "photo",
+            // Légende complète (≤4000 car.) — décrit le bien aux abonnés TikTok.
+            // Le titre 90 car. (customContent) ne suffit pas en Photo Mode.
+            description: data.tiktokDescription,
             privacy_level: "PUBLIC_TO_EVERYONE",
             allow_comment: true,
             allow_duet: true,
