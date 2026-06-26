@@ -20,7 +20,7 @@
 
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { auth } from "./auth";
 
@@ -550,6 +550,14 @@ export const create = mutation({
       shortSlug,
       ...args,
     });
+    // Hook image Open Graph : génère le dérivé 1200×630 dès qu'il y a une image,
+    // pour que l'aperçu de partage soit prêt avant la première publication.
+    // Non bloquant (runAfter 0) + no-op si l'action échoue (cf. convex/ogImage.ts).
+    if (args.images?.length) {
+      await ctx.scheduler.runAfter(0, internal.ogImage.generateOgImage, {
+        propertyId: id,
+      });
+    }
     return id;
   },
 });
@@ -571,7 +579,17 @@ export const getByShortSlug = query({
       .withIndex("by_short_slug", (q) => q.eq("shortSlug", slug))
       .first();
     if (!property) return null;
-    return { propertyId: property._id, status: property.status };
+    // On expose le DOCUMENT COMPLET uniquement si l'annonce est publiquement
+    // visible — la route /p/<slug> s'en sert pour générer ses balises Open Graph
+    // (aperçu de partage) sans que le crawler ait à suivre la redirection JS.
+    // Pour un brouillon (draft), on ne renvoie que de quoi rediriger : pas de
+    // fuite des données du bien à un visiteur non-owner.
+    const publiclyVisible = PUBLICLY_VISIBLE_STATUSES.includes(property.status);
+    return {
+      propertyId: property._id,
+      status: property.status,
+      property: publiclyVisible ? property : null,
+    };
   },
 });
 
@@ -659,6 +677,19 @@ export const update = mutation({
       });
     }
 
+    // Hook image Open Graph : régénère le dérivé d'aperçu quand la liste d'images
+    // change (la photo principale `images[0]` a pu être remplacée) OU à la
+    // première publication (sécurité si le dérivé n'a pas été créé au `create`).
+    // Idempotent : `generateOgImage` remplace l'ancien dérivé et le supprime du
+    // storage (cf. setOgImage). Non bloquant + no-op silencieux en cas d'échec.
+    // Cast `as any` : l'inférence de `patch` est réduite à `{ status? }` ici (cf.
+    // note sur Object.fromEntries dans update.args qui efface l'inférence Convex).
+    if ((patch as any).images !== undefined || isFirstPublication) {
+      await ctx.scheduler.runAfter(0, internal.ogImage.generateOgImage, {
+        propertyId: id,
+      });
+    }
+
     // Hook notification favoris : quand le bien devient INDISPONIBLE (vendu ou
     // loué), on prévient par email tous les utilisateurs qui l'avaient en favori.
     //
@@ -689,6 +720,49 @@ export const update = mutation({
 });
 
 /**
+ * internalMutation : enregistre le dérivé Open Graph sur une annonce.
+ *
+ * Appelée par l'action `internal.ogImage.generateOgImage` (qui, étant une action
+ * Node, n'a pas accès direct à `ctx.db`). On y centralise aussi le nettoyage du
+ * storage : si l'annonce avait déjà un `ogImageId` différent (régénération après
+ * changement de photo principale), on supprime l'ancien fichier pour ne pas
+ * laisser de dérivés orphelins dans Convex storage.
+ */
+export const setOgImage = internalMutation({
+  args: {
+    propertyId: v.id("properties"),
+    ogImage: v.string(),
+    ogImageId: v.id("_storage"),
+  },
+  handler: async (ctx, { propertyId, ogImage, ogImageId }) => {
+    const existing = await ctx.db.get(propertyId);
+    if (!existing) return; // annonce supprimée entre-temps → rien à patcher
+    // Supprime l'ancien dérivé s'il existait et qu'il diffère du nouveau.
+    if (existing.ogImageId && existing.ogImageId !== ogImageId) {
+      await ctx.storage.delete(existing.ogImageId);
+    }
+    await ctx.db.patch(propertyId, { ogImage, ogImageId });
+  },
+});
+
+/**
+ * internalQuery : liste légère des annonces pour le backfill OG — uniquement les
+ * champs nécessaires (id + images + ogImage) pour décider lesquelles régénérer.
+ * Utilisée par `internal.ogImage.backfillOgImages`.
+ */
+export const listForOgBackfill = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query("properties").collect();
+    return all.map((p) => ({
+      _id: p._id,
+      hasImage: (p.images?.length ?? 0) > 0,
+      hasOgImage: Boolean(p.ogImage),
+    }));
+  },
+});
+
+/**
  * Supprime une annonce (propriétaire seulement).
  */
 export const remove = mutation({
@@ -712,6 +786,12 @@ export const remove = mutation({
       .withIndex("by_property", (q) => q.eq("propertyId", id))
       .collect();
     for (const i of inqs) await ctx.db.delete(i._id);
+
+    // Nettoie le dérivé OG stocké pour cette annonce (évite un fichier orphelin
+    // dans Convex storage). Les photos d'origine (images[]) ne sont pas gérées
+    // ici : elles peuvent être uploadées sur un storage externe et le flux
+    // d'upload historique ne traçait pas leurs storageIds.
+    if (existing.ogImageId) await ctx.storage.delete(existing.ogImageId);
 
     await ctx.db.delete(id);
   },

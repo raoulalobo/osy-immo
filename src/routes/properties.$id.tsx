@@ -49,6 +49,7 @@ import { classifyReferrer } from "~/lib/referrer";
 import { authClient } from "~/lib/auth-client";
 import { getVercelGeo } from "~/lib/get-geo";
 import { cn, formatArea, formatPrice, getPublicUrl } from "~/lib/utils";
+import { buildPropertyOgMeta } from "~/lib/og";
 
 // Schéma des query params acceptés. Toutes optionnelles ; on les ignore
 // silencieusement si absentes. Ces params sont POSÉS par le ShareButton
@@ -92,96 +93,10 @@ export const Route = createFileRoute("/properties/$id")({
   // `loaderData` peut être `undefined` pendant un prefetch — toujours protéger.
   head: ({ loaderData }) => {
     if (!loaderData?.property) return { meta: [] };
-    const { property } = loaderData;
-
-    const url = getPublicUrl(`/properties/${property._id}`);
-    const image = property.images[0] ?? getPublicUrl("/og-default.jpg");
-
-    // Construction du titre + description pour le preview WhatsApp / FB / iMessage.
-    // Stratégie : on met le PRIX en évidence à 2 endroits car ces plateformes
-    // n'ont pas de "slot" prix natif dans la carte preview (uniquement title,
-    // description et image sont rendus visuellement).
-    //
-    //   1. Titre   : "<titre du bien> — <prix>"
-    //                Visible dans la carte preview + l'onglet du navigateur.
-    //   2. Description : "<prix> · <ville> · <surface> · <pièces>\n\n<description>"
-    //                Première ligne = synthèse scannable, le reste = vraie description.
-    //                WhatsApp tronque souvent à 2-3 lignes → l'info clé reste visible.
-    const priceLabel =
-      property.listingType === "rent"
-        ? `${formatPrice(property.price)} /mois`
-        : formatPrice(property.price);
-
-    const summaryParts = [
-      priceLabel,
-      property.city,
-      formatArea(property.surface),
-    ];
-    if (property.rooms !== undefined) {
-      summaryParts.push(`${property.rooms} pièces`);
-    }
-    const summary = summaryParts.join(" · ");
-
-    // Compose la description finale : ligne de résumé + description originale,
-    // puis tronque à 200 caractères max (limite confortable OG/Twitter).
-    const fullDescription = `${summary}\n\n${property.description}`;
-    const desc =
-      fullDescription.length > 200
-        ? fullDescription.slice(0, 197) + "…"
-        : fullDescription;
-
-    // Préfixe statut pour les annonces non-active — visible dans la preview
-    // WhatsApp/Facebook ET dans l'onglet du navigateur. Évite que quelqu'un
-    // clique pensant pouvoir acheter et se retrouve sur une annonce vendue
-    // sans s'en rendre compte.
-    const statusPrefix =
-      property.status === "sold"
-        ? "[VENDU] "
-        : property.status === "rented"
-          ? "[LOUÉ] "
-          : property.status === "archived"
-            ? "[RETIRÉ] "
-            : "";
-    const ogTitle = `${statusPrefix}${property.title} — ${priceLabel}`;
-    const pageTitle = `${ogTitle} | Osy-Immo`;
-
-    return {
-      meta: [
-        { title: pageTitle },
-        { name: "description", content: desc },
-        // Open Graph — utilisé par WhatsApp, Facebook, LinkedIn, iMessage, Slack.
-        // WhatsApp est strict : il faut og:image en HTTPS, dimensions ≥ 300x200
-        // (idéal 1200x630). Sans `og:image:width/height`, WhatsApp doit télécharger
-        // l'image pour décoder ses dimensions — opération souvent trop lente, d'où
-        // un preview "fallback" minimaliste. On les précise donc explicitement.
-        { property: "og:type", content: "website" },
-        { property: "og:title", content: ogTitle },
-        { property: "og:description", content: desc },
-        { property: "og:image", content: image },
-        { property: "og:image:secure_url", content: image },
-        { property: "og:image:type", content: "image/jpeg" },
-        { property: "og:image:width", content: "1200" },
-        { property: "og:image:height", content: "630" },
-        { property: "og:image:alt", content: property.title },
-        { property: "og:url", content: url },
-        { property: "og:site_name", content: "Osy-Immo" },
-        { property: "og:locale", content: "fr_CM" },
-        // Métadonnées "product" : la plupart des crawlers n'affichent rien
-        // visuellement mais Google / certains lecteurs RSS exploitent ces
-        // champs structurés pour des cards enrichies dans les SERP.
-        { property: "product:price:amount", content: String(property.price) },
-        { property: "product:price:currency", content: "XAF" },
-        // Twitter Card — preview riche dans Twitter/X
-        { name: "twitter:card", content: "summary_large_image" },
-        { name: "twitter:title", content: ogTitle },
-        { name: "twitter:description", content: desc },
-        { name: "twitter:image", content: image },
-        { name: "twitter:label1", content: "Prix" },
-        { name: "twitter:data1", content: priceLabel },
-        { name: "twitter:label2", content: "Localisation" },
-        { name: "twitter:data2", content: property.city },
-      ],
-    };
+    // Balises Open Graph + Twitter générées par le builder partagé
+    // (src/lib/og.ts), réutilisé à l'identique par la route de lien court
+    // /p/$slug pour que les deux URLs produisent le même aperçu de partage.
+    return buildPropertyOgMeta(loaderData.property);
   },
 
   // Composant "Not Found" personnalisé — affiché quand le loader throw notFound()

@@ -27,6 +27,7 @@ import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { buildPropertyOgMeta } from "~/lib/og";
 
 export const Route = createFileRoute("/p/$slug")({
   // Loader SSR — résout le slug via Convex query. Throw notFound() si
@@ -38,10 +39,13 @@ export const Route = createFileRoute("/p/$slug")({
     if (!result) throw notFound();
     return result;
   },
-  // Pas de head() spécifique — la fiche destination /properties/$id porte
-  // ses propres meta tags Open Graph. Pour TikTok/WhatsApp qui voient un
-  // partage de /p/<slug> directement, ils suivront le redirect et lisent
-  // les meta de la fiche finale.
+  // head() Open Graph — INDISPENSABLE ici : WhatsApp/Facebook/TikTok ne suivent
+  // PAS la redirection JS (ils n'exécutent pas le JavaScript). Sans ces balises,
+  // l'aperçu d'un lien court partagé serait vide. On réutilise le builder partagé
+  // (src/lib/og.ts) pour produire exactement le même aperçu que la fiche complète.
+  // `property` est null pour un brouillon (cf. getByShortSlug) → pas de balises.
+  head: ({ loaderData }) =>
+    loaderData?.property ? buildPropertyOgMeta(loaderData.property) : { meta: [] },
   notFoundComponent: () => (
     <div className="mx-auto max-w-2xl p-10 text-center">
       <h1 className="text-2xl font-semibold">Lien introuvable</h1>

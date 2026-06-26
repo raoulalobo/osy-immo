@@ -70,6 +70,16 @@ export default defineSchema({
     // Limites côté UI : 10 images, 5 vidéos (cf. src/components/MediaUploader.tsx).
     images: v.array(v.string()),
     videos: v.optional(v.array(v.string())),
+    // Dérivé Open Graph : vignette 1200×630 JPEG optimisée (< ~150 Ko) générée
+    // côté serveur à partir de `images[0]` (cf. convex/ogImage.ts). Sert d'image
+    // d'aperçu pour les liens partagés (WhatsApp/Facebook/iMessage), à la place
+    // de la photo brute (souvent > 2 Mo → aperçu rejeté par WhatsApp).
+    //   - `ogImage`   : URL proxifiée osy-immo.com/img/convex/<id>, prête pour og:image.
+    //   - `ogImageId` : storageId du dérivé, conservé pour le supprimer/regénérer.
+    // Optional : peuplé en asynchrone après l'upload (annonces récentes) ou via
+    // `npx convex run ogImage:backfillOgImages` (annonces antérieures).
+    ogImage: v.optional(v.string()),
+    ogImageId: v.optional(v.id("_storage")),
     features: v.array(v.string()),      // ["piscine", "garage", "balcon"]
     publishedAt: v.optional(v.number()),// epoch ms
     // Short-slug 6 caractères (alphabet sans 0/O/I/l) — sert à construire
