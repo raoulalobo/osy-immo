@@ -101,6 +101,45 @@ export const Route = createFileRoute("/properties/$id")({
     return buildPropertyOgMeta(loaderData.property);
   },
 
+  // ----- Error boundary de route ----------------------------------------------
+  // Défense en profondeur : si une query secondaire de la page (profil vendeur,
+  // stats, favoris…) lève après le rendu initial, l'erreur est confinée ICI au
+  // lieu de remonter au error boundary GLOBAL qui remplace toute l'application
+  // par « Something went wrong! ». L'utilisateur garde un message localisé et
+  // un chemin de sortie (réessayer / retour aux annonces).
+  // NB : le cas "seed-owner" qui déclenchait ce crash est aussi corrigé à la
+  // source (garde try/catch dans convex/users.ts:getPublicProfile).
+  errorComponent: ({ error, reset }) => (
+    <div className="mx-auto max-w-2xl p-10 text-center">
+      <h1 className="text-2xl font-semibold">Un problème est survenu</h1>
+      <p className="mt-2 text-brand-700/70">
+        Impossible d'afficher cette annonce pour le moment. Réessayez dans un
+        instant.
+      </p>
+      {/* Détail technique visible uniquement en dev — jamais en production */}
+      {import.meta.env.DEV && (
+        <pre className="mt-4 overflow-x-auto rounded-lg bg-brand-50 p-3 text-left text-xs text-red-600">
+          {error.message}
+        </pre>
+      )}
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={reset}
+          className="rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600 active:scale-[0.97] transition-[transform,background-color] duration-150 [transition-timing-function:var(--ease-swift-out)]"
+        >
+          Réessayer
+        </button>
+        <Link
+          to="/properties"
+          className="rounded-full bg-brand-100 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-200"
+        >
+          Voir les autres annonces
+        </Link>
+      </div>
+    </div>
+  ),
+
   // Composant "Not Found" personnalisé — affiché quand le loader throw notFound()
   notFoundComponent: () => (
     <div className="mx-auto max-w-2xl p-10 text-center">

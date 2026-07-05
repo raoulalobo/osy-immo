@@ -39,7 +39,19 @@ export const getPublicProfile = query({
   args: { userId: v.string() },
   handler: async (ctx, { userId }) => {
     // 1) Champs natifs Better Auth
-    const user = await authComponent.getAnyUserById(ctx, userId);
+    // try/catch indispensable : getAnyUserById fait un db.get interne qui
+    // LÈVE si userId n'est pas un ID Convex décodable (ex. "seed-owner" des
+    // données de démo, ou tout identifiant orphelin/corrompu). Sans cette
+    // garde, l'exception remonte au client et le error boundary global
+    // remplace toute la page détail par « Something went wrong! ».
+    // Un ID non résoluble ≡ utilisateur introuvable → null (contrat existant,
+    // le frontend masque simplement la mini-card vendeur).
+    let user;
+    try {
+      user = await authComponent.getAnyUserById(ctx, userId);
+    } catch {
+      return null;
+    }
     if (!user) return null;
     const u = user as any;
 
