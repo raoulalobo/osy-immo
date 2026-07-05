@@ -27,6 +27,11 @@ const searchSchema = z.object({
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
   minSurface: z.coerce.number().optional(),
+  // Filtres modalités de paiement — présents dans l'URL uniquement quand
+  // cochés (la SearchBar écrit true ou supprime la clé). TanStack Router
+  // JSON-parse les valeurs des search params, donc "true" arrive en boolean.
+  acceptsInstallments: z.boolean().optional(),
+  acceptsExchange: z.boolean().optional(),
 });
 
 // Taille de page : 12 = multiple de 6 → remplit exactement la grille en
@@ -53,6 +58,8 @@ function PropertiesListPage() {
           city: filters.city,
           type: filters.type,
           listingType: filters.listingType,
+          acceptsInstallments: filters.acceptsInstallments,
+          acceptsExchange: filters.acceptsExchange,
         }
       : {
           city: filters.city,
@@ -61,6 +68,8 @@ function PropertiesListPage() {
           minPrice: filters.minPrice,
           maxPrice: filters.maxPrice,
           minSurface: filters.minSurface,
+          acceptsInstallments: filters.acceptsInstallments,
+          acceptsExchange: filters.acceptsExchange,
         },
     { initialNumItems: PAGE_SIZE }
   );

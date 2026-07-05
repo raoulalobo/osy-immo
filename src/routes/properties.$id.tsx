@@ -26,10 +26,12 @@ import {
 import { useMutation, useQuery } from "convex/react";
 import { z } from "zod";
 import {
+  ArrowLeftRight,
   BarChart3,
   Bath,
   Bed,
   Calendar,
+  CalendarClock,
   Eye,
   Heart,
   MapPin,
@@ -241,6 +243,39 @@ function PropertyDetailPage() {
               <span className="text-sm font-normal text-brand-700/70"> /mois</span>
             )}
           </p>
+          {/* Modalités de paiement flexibles — badges + conditions détaillées
+              saisies par le vendeur (texte libre optionnel). Champs optionnels :
+              absents sur les annonces antérieures → bloc masqué. */}
+          {(property.acceptsInstallments || property.acceptsExchange) && (
+            <div className="mt-2 flex flex-col items-end gap-2">
+              {property.acceptsInstallments && (
+                <div className="flex flex-col items-end">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                    <CalendarClock className="h-3.5 w-3.5" />
+                    Paiement en tranches accepté
+                  </span>
+                  {property.installmentDetails && (
+                    <p className="mt-1 max-w-[280px] text-right text-xs text-brand-700/70">
+                      « {property.installmentDetails} »
+                    </p>
+                  )}
+                </div>
+              )}
+              {property.acceptsExchange && (
+                <div className="flex flex-col items-end">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700">
+                    <ArrowLeftRight className="h-3.5 w-3.5" />
+                    Échange accepté
+                  </span>
+                  {property.exchangeDetails && (
+                    <p className="mt-1 max-w-[280px] text-right text-xs text-brand-700/70">
+                      « {property.exchangeDetails} »
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {/* Actions : Favori + Partager.
               Le Favori est désactivé pour les annonces non-active (vendues,
               louées, retirées) — sauver une annonce qu'on ne peut plus

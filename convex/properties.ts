@@ -114,6 +114,11 @@ export const list = query({
     minPrice: v.optional(v.number()),
     maxPrice: v.optional(v.number()),
     minSurface: v.optional(v.number()),
+    // Filtres modalités de paiement : `true` = ne garder que les annonces qui
+    // proposent la modalité. Les annonces antérieures (champ absent) sont
+    // exclues du filtre — absent est traité comme « non proposé ».
+    acceptsInstallments: v.optional(v.boolean()),
+    acceptsExchange: v.optional(v.boolean()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -153,6 +158,10 @@ export const list = query({
       if (args.maxPrice !== undefined && p.price > args.maxPrice) return false;
       if (args.minSurface !== undefined && p.surface < args.minSurface)
         return false;
+      // Modalités de paiement : filtre « opt-in » — on ne filtre que si true.
+      if (args.acceptsInstallments && p.acceptsInstallments !== true)
+        return false;
+      if (args.acceptsExchange && p.acceptsExchange !== true) return false;
       return true;
     });
 
@@ -207,6 +216,9 @@ export const listPaginated = query({
     minPrice: v.optional(v.number()),
     maxPrice: v.optional(v.number()),
     minSurface: v.optional(v.number()),
+    // Filtres modalités de paiement — même sémantique opt-in que `list`.
+    acceptsInstallments: v.optional(v.boolean()),
+    acceptsExchange: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     // Cap défensif sur numItems (parité avec MAX_LIST_LIMIT, audit 260601-1159) :
@@ -257,6 +269,10 @@ export const listPaginated = query({
       if (args.maxPrice !== undefined && p.price > args.maxPrice) return false;
       if (args.minSurface !== undefined && p.surface < args.minSurface)
         return false;
+      // Modalités de paiement : filtre « opt-in » — on ne filtre que si true.
+      if (args.acceptsInstallments && p.acceptsInstallments !== true)
+        return false;
+      if (args.acceptsExchange && p.acceptsExchange !== true) return false;
       return true;
     });
 
@@ -285,6 +301,10 @@ export const search = query({
       )
     ),
     listingType: v.optional(v.union(v.literal("sale"), v.literal("rent"))),
+    // Filtres modalités de paiement — appliqués via les filterFields du
+    // searchIndex (cf. schema.ts), donc côté index et non en mémoire.
+    acceptsInstallments: v.optional(v.boolean()),
+    acceptsExchange: v.optional(v.boolean()),
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args) => {
@@ -301,6 +321,9 @@ export const search = query({
         if (args.city) s = s.eq("city", args.city);
         if (args.type) s = s.eq("type", args.type);
         if (args.listingType) s = s.eq("listingType", args.listingType);
+        // eq(true) exclut naturellement les annonces sans le champ (rétro-compat).
+        if (args.acceptsInstallments) s = s.eq("acceptsInstallments", true);
+        if (args.acceptsExchange) s = s.eq("acceptsExchange", true);
         return s;
       })
       .paginate(paginationOpts);
@@ -442,6 +465,12 @@ const baseFields = {
   ),
   listingType: v.union(v.literal("sale"), v.literal("rent")),
   price: v.number(),
+  // Modalités de paiement flexibles (cf. schema.ts) — badge booléen + texte
+  // libre optionnel chacun. Le form n'envoie le texte que si le booléen est true.
+  acceptsInstallments: v.optional(v.boolean()),
+  installmentDetails: v.optional(v.string()),
+  acceptsExchange: v.optional(v.boolean()),
+  exchangeDetails: v.optional(v.string()),
   surface: v.number(),
   rooms: v.optional(v.number()),
   bedrooms: v.optional(v.number()),
@@ -479,6 +508,9 @@ const FEATURE_ITEM_MAX = 50;
 const IMAGES_MAX_LEN = 10;
 const VIDEOS_MAX_LEN = 5;
 const URL_ITEM_MAX = 1000;
+// Textes libres des modalités de paiement (tranches / échange) — courts par
+// design : ce sont des mentions affichées sous le prix, pas des descriptions.
+const PAYMENT_DETAILS_MAX = 300;
 
 /**
  * Valide les longueurs des champs texte d'une annonce. Lève si dépassement.
@@ -492,6 +524,8 @@ function validateTextLengths(args: {
   features?: string[];
   images?: string[];
   videos?: string[];
+  installmentDetails?: string;
+  exchangeDetails?: string;
 }) {
   if (args.title !== undefined && args.title.length > TITLE_MAX) {
     throw new Error(`Titre trop long (max ${TITLE_MAX} caractères).`);
@@ -530,6 +564,22 @@ function validateTextLengths(args: {
     for (const u of args.videos) {
       if (u.length > URL_ITEM_MAX) throw new Error("URL vidéo trop longue.");
     }
+  }
+  if (
+    args.installmentDetails !== undefined &&
+    args.installmentDetails.length > PAYMENT_DETAILS_MAX
+  ) {
+    throw new Error(
+      `Conditions de paiement en tranches trop longues (max ${PAYMENT_DETAILS_MAX} caractères).`
+    );
+  }
+  if (
+    args.exchangeDetails !== undefined &&
+    args.exchangeDetails.length > PAYMENT_DETAILS_MAX
+  ) {
+    throw new Error(
+      `Description de l'échange trop longue (max ${PAYMENT_DETAILS_MAX} caractères).`
+    );
   }
 }
 

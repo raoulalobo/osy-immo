@@ -69,6 +69,13 @@ export type PropertyFormState = {
   images: string[];
   videos: string[];
   featuresText: string; // CSV — converti en array au submit
+  // Modalités de paiement flexibles (vente uniquement — masquées si "rent").
+  // Booléen = badge sur l'annonce ; texte libre optionnel affiché en détail.
+  // buildPayload() n'envoie le texte que si la case correspondante est cochée.
+  acceptsInstallments: boolean; // paiement en tranches accepté
+  installmentDetails: string;   // ex. « 40% à la signature, solde sur 12 mois »
+  acceptsExchange: boolean;     // échange/troc accepté (ex. terrain contre voiture)
+  exchangeDetails: string;      // ce que le vendeur accepte en échange
   // Choix du média publié sur les réseaux sociaux (FB + IG + TikTok via Zernio).
   // - "images" (défaut) : carrousel des images
   // - "video" : 1ère vidéo (videos[0]) en post vidéo natif
@@ -99,6 +106,10 @@ const DEFAULT_STATE: PropertyFormState = {
   images: [],
   videos: [],
   featuresText: "",
+  acceptsInstallments: false,
+  installmentDetails: "",
+  acceptsExchange: false,
+  exchangeDetails: "",
   socialMediaChoice: "images",
 };
 
@@ -184,6 +195,22 @@ export function PropertyForm({
       type: form.type,
       listingType: form.listingType,
       price: Number(form.price),
+      // Modalités de paiement — vente uniquement. Valeurs EXPLICITES
+      // (false / "") et non undefined : un champ undefined est retiré du
+      // payload à la sérialisation Convex, donc en mode édition décocher une
+      // case ne supprimerait jamais l'ancienne valeur via `patch`.
+      // Le texte n'est persisté que si sa case est cochée (pas d'orphelin).
+      acceptsInstallments:
+        form.listingType === "sale" && form.acceptsInstallments,
+      installmentDetails:
+        form.listingType === "sale" && form.acceptsInstallments
+          ? form.installmentDetails.trim()
+          : "",
+      acceptsExchange: form.listingType === "sale" && form.acceptsExchange,
+      exchangeDetails:
+        form.listingType === "sale" && form.acceptsExchange
+          ? form.exchangeDetails.trim()
+          : "",
       surface: Number(form.surface),
       rooms: form.rooms ? Number(form.rooms) : undefined,
       bedrooms: form.bedrooms ? Number(form.bedrooms) : undefined,
@@ -469,6 +496,41 @@ export function PropertyForm({
           required
         />
       </Row>
+
+      {/* -----------------------------------------------------------------
+          Modalités de paiement flexibles — vente uniquement (les tranches /
+          l'échange n'ont pas de sens pour un loyer mensuel). Chaque case
+          cochée révèle un textarea optionnel décrivant les conditions.
+          Persisté dans properties.acceptsInstallments / installmentDetails /
+          acceptsExchange / exchangeDetails (cf. convex/schema.ts).
+          ----------------------------------------------------------------- */}
+      {form.listingType === "sale" && (
+        <div className="rounded-xl border border-brand-200 bg-brand-50/50 p-4">
+          <p className="mb-3 text-xs font-medium uppercase tracking-wide text-brand-700/70">
+            Modalités de paiement acceptées
+          </p>
+          <div className="flex flex-col gap-3">
+            <PaymentModeField
+              label="Paiement en tranches accepté"
+              checked={form.acceptsInstallments}
+              onCheckedChange={(c) => set("acceptsInstallments", c)}
+              detailsLabel="Conditions (optionnel)"
+              detailsPlaceholder="Ex : 40% à la signature, solde sur 12 mois"
+              details={form.installmentDetails}
+              onDetailsChange={(v) => set("installmentDetails", v)}
+            />
+            <PaymentModeField
+              label="Échange / troc accepté"
+              checked={form.acceptsExchange}
+              onCheckedChange={(c) => set("acceptsExchange", c)}
+              detailsLabel="Ce que vous acceptez en échange (optionnel)"
+              detailsPlaceholder="Ex : voiture récente, autre terrain, échange partiel + complément en argent…"
+              details={form.exchangeDetails}
+              onDetailsChange={(v) => set("exchangeDetails", v)}
+            />
+          </div>
+        </div>
+      )}
 
       <Row cols={3}>
         <Input
@@ -828,6 +890,65 @@ function Textarea({
         className="w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
       {helper}
+    </div>
+  );
+}
+
+// -------------------------------------------------------------------------------------------------
+// PaymentModeField : case à cocher d'une modalité de paiement (tranches ou
+// échange) + textarea de détails révélé uniquement quand la case est cochée.
+//
+// Rôle : composant contrôlé — l'état vit dans PropertyFormState (parent).
+// Interactions : utilisé 2× dans la section « Modalités de paiement » du form
+// (vente uniquement). maxLength 300 = PAYMENT_DETAILS_MAX côté serveur
+// (convex/properties.ts) — la borne UI évite l'erreur serveur au submit.
+//
+// Exemple : <PaymentModeField label="Paiement en tranches accepté"
+//             checked={form.acceptsInstallments} ... />
+// -------------------------------------------------------------------------------------------------
+function PaymentModeField({
+  label,
+  checked,
+  onCheckedChange,
+  detailsLabel,
+  detailsPlaceholder,
+  details,
+  onDetailsChange,
+}: {
+  label: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  detailsLabel: string;
+  detailsPlaceholder: string;
+  details: string;
+  onDetailsChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="flex cursor-pointer items-center gap-2 text-sm text-brand-900">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onCheckedChange(e.target.checked)}
+          className="h-4 w-4 rounded border-brand-300 text-accent-500 focus:ring-accent-500"
+        />
+        {label}
+      </label>
+      {checked && (
+        <div className="mt-2 pl-6">
+          <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-brand-700/70">
+            {detailsLabel}
+          </label>
+          <textarea
+            value={details}
+            rows={2}
+            maxLength={300}
+            placeholder={detailsPlaceholder}
+            onChange={(e) => onDetailsChange(e.target.value)}
+            className="w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+      )}
     </div>
   );
 }

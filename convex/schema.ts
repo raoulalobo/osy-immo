@@ -49,6 +49,14 @@ export default defineSchema({
     listingType,                        // sale | rent
     status: propertyStatus,             // draft | active | sold | rented | archived
     price: v.number(),                  // En FCFA (loyer mensuel si rent)
+    // Modalités de paiement flexibles (pratiques courantes au Cameroun).
+    // Optionnels pour rétro-compat : absent = modalité non proposée.
+    // Les textes détaillés ne sont affichés que si le booléen associé est true
+    // (buildPayload côté form n'envoie jamais de texte orphelin).
+    acceptsInstallments: v.optional(v.boolean()), // paiement en tranches accepté
+    installmentDetails: v.optional(v.string()),   // ex. « 40% à la signature, solde sur 12 mois »
+    acceptsExchange: v.optional(v.boolean()),     // échange/troc accepté (ex. terrain contre voiture)
+    exchangeDetails: v.optional(v.string()),      // ce que le vendeur accepte en échange
     surface: v.number(),                // m² total
     rooms: v.optional(v.number()),      // nombre de pièces (null pour terrain)
     bedrooms: v.optional(v.number()),
@@ -115,7 +123,16 @@ export default defineSchema({
     .index("by_short_slug", ["shortSlug"])
     .searchIndex("search_title", {
       searchField: "title",
-      filterFields: ["status", "city", "type", "listingType"],
+      // acceptsInstallments / acceptsExchange : permet à `properties.search`
+      // de filtrer la recherche full-text par modalité de paiement.
+      filterFields: [
+        "status",
+        "city",
+        "type",
+        "listingType",
+        "acceptsInstallments",
+        "acceptsExchange",
+      ],
     }),
 
   // -------------------------------------------------------------------

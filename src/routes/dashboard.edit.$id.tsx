@@ -113,6 +113,12 @@ function EditPropertyPage() {
     images: property.images,
     videos: property.videos ?? [],
     featuresText: property.features.join(", "),
+    // Modalités de paiement — fallback false/"" pour les annonces antérieures
+    // (champs optionnels absents = modalité non proposée).
+    acceptsInstallments: property.acceptsInstallments ?? false,
+    installmentDetails: property.installmentDetails ?? "",
+    acceptsExchange: property.acceptsExchange ?? false,
+    exchangeDetails: property.exchangeDetails ?? "",
     // Pré-remplit le choix réseaux sociaux sauvegardé ("images" | "video").
     // Sans ça, le radio retombait toujours sur "images" à la réouverture, donnant
     // l'impression que "Publier la vidéo principale" n'était pas persisté.

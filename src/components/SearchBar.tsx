@@ -29,6 +29,11 @@ export type PropertyFilters = {
   minPrice?: number;
   maxPrice?: number;
   q?: string;
+  // Filtres modalités de paiement — true = « uniquement les annonces qui
+  // proposent la modalité ». En pratique jamais false : la clé est supprimée
+  // (undefined) quand la case est décochée, pour garder l'URL propre.
+  acceptsInstallments?: boolean;
+  acceptsExchange?: boolean;
 };
 
 // Options listingType — vide = "Tous types de transactions"
@@ -126,6 +131,38 @@ export function SearchBar({
       >
         <Search className="h-4 w-4" /> Rechercher
       </button>
+
+      {/* Filtres modalités de paiement — rangée pleine largeur sous les
+          champs principaux (col-span-4 = toutes les colonnes de la grille).
+          Cochée → clé à true dans les filtres ; décochée → clé supprimée
+          (undefined) pour ne pas polluer l'URL. */}
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-2 pb-1 sm:col-span-4">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-brand-700">
+          <input
+            type="checkbox"
+            checked={filters.acceptsInstallments ?? false}
+            onChange={(e) =>
+              update(
+                "acceptsInstallments",
+                e.target.checked ? true : undefined
+              )
+            }
+            className="h-4 w-4 rounded border-brand-300 text-accent-500 focus:ring-accent-500"
+          />
+          Paiement en tranches
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-brand-700">
+          <input
+            type="checkbox"
+            checked={filters.acceptsExchange ?? false}
+            onChange={(e) =>
+              update("acceptsExchange", e.target.checked ? true : undefined)
+            }
+            className="h-4 w-4 rounded border-brand-300 text-accent-500 focus:ring-accent-500"
+          />
+          Échange accepté
+        </label>
+      </div>
     </form>
   );
 }

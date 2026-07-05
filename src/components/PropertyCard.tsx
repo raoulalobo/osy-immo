@@ -13,7 +13,7 @@
 // -------------------------------------------------------------------------------------------------
 
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bed, Heart, MapPin, Maximize2 } from "lucide-react";
+import { ArrowLeftRight, Bed, CalendarClock, Heart, MapPin, Maximize2 } from "lucide-react";
 import { useMutation, useQuery } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
@@ -144,6 +144,27 @@ export function PropertyCard({ property }: { property: Doc<"properties"> }) {
             </span>
           )}
         </div>
+
+        {/* Badges modalités de paiement — uniquement si le vendeur les propose
+            (champs optionnels : absents sur les annonces antérieures). Les
+            textes détaillés (installmentDetails / exchangeDetails) ne sont
+            affichés que sur la page détail, trop longs pour la carte. */}
+        {(property.acceptsInstallments || property.acceptsExchange) && (
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {property.acceptsInstallments && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                <CalendarClock className="h-3 w-3" />
+                Paiement en tranches
+              </span>
+            )}
+            {property.acceptsExchange && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+                <ArrowLeftRight className="h-3 w-3" />
+                Échange accepté
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </Link>
   );
